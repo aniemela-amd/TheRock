@@ -134,6 +134,62 @@
       "inherits": [
         "windows-base"
       ]
+    },
+    {
+      "name": "linux-fastbuild-spike",
+      "displayName": "FASTBuild smoke test (minimal tree)",
+      "description": "FASTBuild generator (requires CMake 4.2+), feature groups off; validates alternative backend wiring",
+      "generator": "FASTBuild",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "THEROCK_ENABLE_ALL": "OFF",
+        "THEROCK_ENABLE_CORE": "OFF",
+        "THEROCK_ENABLE_COMM_LIBS": "OFF",
+        "THEROCK_ENABLE_DEBUG_TOOLS": "OFF",
+        "THEROCK_ENABLE_MATH_LIBS": "OFF",
+        "THEROCK_ENABLE_ML_LIBS": "OFF",
+        "THEROCK_ENABLE_PROFILER": "OFF",
+        "THEROCK_ENABLE_DC_TOOLS": "OFF",
+        "THEROCK_ENABLE_MEDIA_LIBS": "OFF",
+        "THEROCK_ENABLE_HOST_MATH": "OFF",
+        "THEROCK_BUNDLE_SYSDEPS": "OFF",
+        "BUILD_TESTING": "OFF",
+        "THEROCK_QUIET_INSTALL": "OFF"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux-ninja-spike",
+      "displayName": "Ninja smoke test (minimal tree, matches linux-fastbuild-spike)",
+      "description": "Same cache flags as linux-fastbuild-spike but Ninja; for side-by-side container checks",
+      "inherits": [
+        "linux-fastbuild-spike"
+      ],
+      "generator": "Ninja"
+    },
+    {
+      "name": "linux-fastbuild-leaf",
+      "displayName": "FASTBuild leaf compile (fmt)",
+      "description": "Minimal tree plus therock-fmt; first real C++ compile via FASTBuild",
+      "inherits": [
+        "linux-fastbuild-spike"
+      ],
+      "cacheVariables": {
+        "THEROCK_ENABLE_FMT": "ON"
+      }
+    },
+    {
+      "name": "linux-ninja-leaf",
+      "displayName": "Ninja leaf compile (fmt)",
+      "description": "Same scope as linux-fastbuild-leaf but Ninja; quick compile test in Docker",
+      "inherits": [
+        "linux-fastbuild-leaf"
+      ],
+      "generator": "Ninja"
     }
   ]
 }
