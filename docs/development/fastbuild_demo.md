@@ -11,6 +11,11 @@ required for an initial spike.
 
 ## Setup
 
+There are two options to setup the FASTBuild backend:
+
+- A: Use prebuilt container image
+- B: Use empty container image and setup manually
+
 ### A. Use prebuilt container image
 
 #### 1. Run container (prebuilt)
@@ -24,6 +29,16 @@ docker run -it --rm \
   -w /workspace \
   therock-build-tools:latest \
   bash
+```
+
+#### 2. Setup TheRock
+
+```bash
+cd /path/to/TheRock    # your existing checkout / mount
+
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python3 ./build_tools/fetch_sources.py
 ```
 
 ### B. Use empty container image
@@ -75,6 +90,8 @@ sudo install -m 755 fbuild /usr/local/bin/fbuild
 fbuild -version    # >= 1.17
 ```
 
+#### 3. Setup TheRock
+
 ##### TheRock repo (unchanged tree)
 
 ```bash
@@ -112,4 +129,15 @@ cmake --preset linux-ninja-leaf -B /tmp/build-ninja-leaf -S . \
   -DTHEROCK_AMDGPU_FAMILIES=gfx942
 
 cmake --build /tmp/build-ninja-leaf --target therock-fmt
+```
+
+## Prebuilt container image
+
+If the prebuilt container image does not exist, build it:
+
+```bash
+docker build \
+  -f dockerfiles/fastbuild_driver.Dockerfile \
+  -t therock-build-tools:latest \
+  .
 ```

@@ -10,7 +10,8 @@ set -euo pipefail
 SCRIPT_DIR="$(dirname "$0")"
 DOCKERFILE="${SCRIPT_DIR}/build_manylinux_x86_64.Dockerfile"
 
-PATCHELF_GIT_REF="$(sed -n 's/^ENV PATCHELF_GIT_REF="\(.*\)"/\1/p' "${DOCKERFILE}")"
+# [^"]* avoids greedy .* issues; strip CR for Windows checkouts / CRLF Docker context.
+PATCHELF_GIT_REF="$(sed -n 's/^ENV PATCHELF_GIT_REF="\([^"]*\)".*/\1/p' "${DOCKERFILE}" | tr -d '\r')"
 if [ -z "${PATCHELF_GIT_REF}" ]; then
     echo "error: could not extract PATCHELF_GIT_REF from ${DOCKERFILE}" >&2
     exit 1

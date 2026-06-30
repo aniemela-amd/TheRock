@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-PATCHELF_GIT_REF="${1:?usage: $0 <NixOS/patchelf git ref>}"
+PATCHELF_GIT_REF="$(printf '%s' "${1:?usage: $0 <NixOS/patchelf git ref>}" | tr -d '\r')"
 INSTALL_PREFIX="${INSTALL_PREFIX:-/usr/local}"
 SOURCE_URL="https://github.com/NixOS/patchelf/archive/${PATCHELF_GIT_REF}.tar.gz"
 SHORT_GIT_REF="${PATCHELF_GIT_REF:0:12}"
