@@ -131,6 +131,114 @@ cmake --preset linux-ninja-leaf -B /tmp/build-ninja-leaf -S . \
 cmake --build /tmp/build-ninja-leaf --target therock-fmt
 ```
 
+## Distributed build example
+
+FASTBuild distributes compile jobs from a **driver** to **workers** over TCP port
+**31264**. Workers run `fbuildworker` on the host OS; the driver passes `-dist` to
+`fbuild` (via `cmake --build … -- -dist`).
+
+Sources can stay on local disk (for example `~/scratch/TheRock`). Only worker
+discovery must be reachable from every participant. Two options:
+
+
+| Method                     | When to use                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------- |
+| `FASTBUILD_WORKERS`        | Docker driver without NFS bind mounts; use worker **IPs** if the container has no cluster DNS |
+| `FASTBUILD_BROKERAGE_PATH` | Shared directory on NFS visible on all hosts (for example `/opt/head/.fastbuild.brokerage`)   |
+
+
+### 1. Install FASTBuild on each worker host (once)
+
+```bash
+cd /path/to/TheRock
+# If the checkout came from Windows, strip CRLF before running the setup script:
+sed -i 's/\r$//' build_tools/fastbuild_container_setup.sh dockerfiles/*.sh
+
+bash build_tools/fastbuild_container_setup.sh
+source ~/.therock-fastbuild-env/activate.sh
+```
+
+Patchelf is only required on the build driver; workers need `fbuildworker` in
+`PATH`.
+
+### 2. Start workers on the hosts
+
+On each node that should accept remote compile jobs:
+
+```bash
+source ~/.therock-fastbuild-env/activate.sh
+fbuildworker -mode=dedicated -cpus=-2 &
+ss -tlnp | grep 31264    # confirm the worker is listening
+```
+
+### 3. Run the driver in a container (`FASTBUILD_WORKERS`)
+
+Use `--network host` so the container can reach workers on the cluster network.
+Prefer **IP addresses** in `FASTBUILD_WORKERS` when hostnames do not resolve
+inside the container (`hostname -I` on each worker node).
+
+```bash
+cd ~/scratch    # parent of TheRock; mounted as /workspace
+
+docker run -it --rm \
+  --network host \
+  --memory=16g \
+  --user root \
+  -v "$(pwd):/workspace" \
+  -w /workspace/TheRock \
+  -e FASTBUILD_WORKERS="10.0.0.2;10.0.0.3" \
+  therock-build-tools:latest \
+  bash
+```
+
+Inside the container, verify connectivity and build:
+
+```bash
+nc -zv 10.0.0.2 31264
+
+export PATH="/opt/therock-fastbuild-env/opt/bin:$PATH"
+
+cmake --preset linux-fastbuild-leaf -B /tmp/build-fb -S . \
+  -DTHEROCK_AMDGPU_FAMILIES=gfx942
+
+cmake --build /tmp/build-fb --target therock-fmt -- -dist -summary
+```
+
+A successful distributed build prints `Distributed Compilation : N Workers in pool`.
+Use `-distverbose` while debugging.
+
+### Alternative: brokerage on shared NFS
+
+When all hosts (and the container) can bind-mount the same NFS path, set the same
+`FASTBUILD_BROKERAGE_PATH` on the driver and every worker instead of
+`FASTBUILD_WORKERS`:
+
+```bash
+export FASTBUILD_BROKERAGE_PATH=/opt/head/.fastbuild.brokerage
+mkdir -p "$FASTBUILD_BROKERAGE_PATH"
+```
+
+Mount only the brokerage subdirectory into Docker (not all of `/opt/head`):
+
+```bash
+docker run -it --rm --network host \
+  -v "$(pwd):/workspace" \
+  -v /opt/head/.fastbuild.brokerage:/fastbuild-brokerage:rw \
+  -w /workspace/TheRock \
+  -e FASTBUILD_BROKERAGE_PATH=/fastbuild-brokerage \
+  therock-build-tools:latest bash
+```
+
+Workers on the host keep `FASTBUILD_BROKERAGE_PATH=/opt/head/.fastbuild.brokerage`.
+If Docker cannot mount the NFS path, use `FASTBUILD_WORKERS` as above.
+
+### Superbuild note
+
+TheRock sub-projects are built with plain `cmake --build` and do not pass `-dist`
+automatically. The leaf example above enables distribution directly; a full
+superbuild needs `-dist` on each sub-build (for example via a `cmake` wrapper) or
+building individual component trees with `cmake --build … -- -dist`.
+
 ## Prebuilt container image
 
 If the prebuilt container image does not exist, build it:
@@ -141,3 +249,4 @@ docker build \
   -t therock-build-tools:latest \
   .
 ```
+
