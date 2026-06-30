@@ -9,6 +9,7 @@
 # development flow.
 
 include(ExternalProject)
+include(therock_fastbuild)
 
 # Global properties.
 # THEROCK_DEFAULT_CMAKE_VARS:
@@ -764,6 +765,27 @@ function(therock_cmake_subproject_activate target_name)
   foreach(_var_name ${_mirror_cmake_vars})
     string(APPEND _init_contents "set(${_var_name} \"@${_var_name}@\" CACHE STRING \"\" FORCE)\n")
   endforeach()
+  if(CMAKE_GENERATOR STREQUAL "FASTBuild")
+    if(CMAKE_FASTBUILD_COMPILER_EXTRA_FILES)
+      string(APPEND _init_contents
+        "set(CMAKE_FASTBUILD_COMPILER_EXTRA_FILES \"${CMAKE_FASTBUILD_COMPILER_EXTRA_FILES}\" CACHE STRING \"\" FORCE)\n")
+    else()
+      therock_fastbuild_collect_compiler_extra_files(
+        "${CMAKE_C_COMPILER}" "${CMAKE_CXX_COMPILER}" _therock_fb_compiler_extra)
+      if(_therock_fb_compiler_extra)
+        list(JOIN _therock_fb_compiler_extra ";" _therock_fb_compiler_extra_joined)
+        string(APPEND _init_contents
+          "set(CMAKE_FASTBUILD_COMPILER_EXTRA_FILES \"${_therock_fb_compiler_extra_joined}\" CACHE STRING \"\" FORCE)\n")
+      endif()
+    endif()
+    if(NOT CMAKE_FASTBUILD_ENV_OVERRIDES)
+      string(APPEND _init_contents
+        "set(CMAKE_FASTBUILD_ENV_OVERRIDES \"LD_LIBRARY_PATH=.\" CACHE STRING \"\" FORCE)\n")
+    else()
+      string(APPEND _init_contents
+        "set(CMAKE_FASTBUILD_ENV_OVERRIDES \"${CMAKE_FASTBUILD_ENV_OVERRIDES}\" CACHE STRING \"\" FORCE)\n")
+    endif()
+  endif()
   # Process dependencies. We process runtime deps first so that they take precedence
   # over build deps (first wins). Both come from the dist directory because if
   # build tools are needed from them, only the dist dir is guaranteed to have

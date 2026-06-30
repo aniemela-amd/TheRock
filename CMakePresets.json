@@ -190,6 +190,17 @@
         "linux-fastbuild-leaf"
       ],
       "generator": "Ninja"
+    },
+    {
+      "name": "linux-fastbuild-medium",
+      "displayName": "FASTBuild medium compile (fftw3)",
+      "description": "Leaf preset plus FFTW3 (double/single); many host C translation units for distributed-build demos",
+      "inherits": [
+        "linux-fastbuild-leaf"
+      ],
+      "cacheVariables": {
+        "THEROCK_ENABLE_FFTW3": "ON"
+      }
     }
   ]
 }

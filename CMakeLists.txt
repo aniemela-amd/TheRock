@@ -29,6 +29,8 @@ include(therock_external_source)
 include(therock_features)
 include(therock_sanitizers)
 include(therock_subproject)
+include(therock_fastbuild)
+therock_fastbuild_setup_compiler_extra_files()
 include(therock_job_pools)
 include(therock_testing)
 
